@@ -43,6 +43,7 @@ const userSchema = new mongoose.Schema({
     // required: [true, 'Please insert a password!'],
   },
   googleId: String,
+  secret: String,
 });
 
 userSchema.plugin(passportLocalMongoose);
@@ -90,11 +91,17 @@ app.get('/', (req, res) => {
 
 app.get('/secrets', (req, res) => {
   // session user algorithm
-  if (req.isAuthenticated()) {
-    res.render('secrets');
-  } else {
-    res.redirect('/login');
-  }
+  // if (req.isAuthenticated()) {
+  //   res.render('secrets');
+  // } else {
+  //   res.redirect('/login');
+  // }
+  User.find({ secret: { $ne: null } }, (err, result) => {
+    err && console.log(err);
+    if (result) {
+      res.render('secrets', { usersWithSecrets: result });
+    }
+  });
 });
 
 app
@@ -163,6 +170,29 @@ app.get('/logout', (req, res) => {
   req.logout((err) => {
     err && console.log(err);
     res.redirect('/');
+  });
+});
+
+app.get('/submit', (req, res) => {
+  if (req.isAuthenticated()) {
+    res.render('submit');
+  } else {
+    res.redirect('/login');
+  }
+});
+
+app.post('/submit', (req, res) => {
+  const secret = req.body.secret;
+
+  User.findById(req.user.id, (err, foundUser) => {
+    err && console.log(err);
+    if (foundUser) {
+      foundUser.secret = secret;
+      foundUser.save((err) => {
+        err && console.log(err);
+        res.redirect('/secrets');
+      });
+    }
   });
 });
 
